@@ -18294,6 +18294,21 @@ if RUN_CPU:
         common = check_model
         device = "cpu"
 
+        def test_uint8_abs_codegen_issue_187018(self):
+            """
+            Ensures torch.compile does not emit std::abs for unsigned integers,
+            which causes implicit promotion to signed int and downstream miscompilation.
+            """
+            def f(x):
+                y = -x.abs()
+                return torch.cat([y, y]).sum()
+
+            x = torch.tensor([200, 200], dtype=torch.uint8)
+            expected = f(x)
+            opt_f = torch.compile(f)
+            actual = opt_f(x)
+            self.assertEqual(actual, expected)
+
     copy_tests(CommonTemplate, CpuTests, "cpu")
 
 if RUN_GPU or HAS_MPS:
