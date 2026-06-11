@@ -735,6 +735,15 @@ class CppOverrides(OpOverrides):
     @staticmethod
     # pyrefly: ignore [bad-override]
     def abs(x):
+        if isinstance(x, CppCSEVariable) and x.dtype is not None:
+            if x.dtype in (torch.uint8, torch.uint16, torch.uint32, torch.uint64):
+                # abs(x) == x for unsigned types; return identity to avoid
+                # -Wtautological-compare and unsigned unary minus warnings.
+                return f"{x}"
+            if is_integer_dtype(x.dtype):
+                # Signed integers: ternary bypass to avoid std::abs which
+                # implicitly promotes to signed int.
+                return f"decltype({x})({x} < decltype({x})(0) ? -{x} : {x})"
         return f"std::abs({x})"
 
     @staticmethod
