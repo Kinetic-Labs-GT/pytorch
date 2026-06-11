@@ -18299,6 +18299,7 @@ if RUN_CPU:
             Ensures torch.compile does not emit std::abs for unsigned integers,
             which causes implicit promotion to signed int and downstream miscompilation.
             """
+            
             def f(x):
                 y = -x.abs()
                 return torch.cat([y, y]).sum()
