@@ -18424,7 +18424,7 @@ if RUN_CPU:
 
         def test_uint8_abs_codegen_issue_187018(self):
             """
-            Ensures torch.compile does not emit std::abs for unsigned integers,
+            Ensures torch.compile does not emit std::abs or .abs() for unsigned integers,
             which causes implicit promotion to signed int and downstream miscompilation.
             """
 
@@ -18432,11 +18432,15 @@ if RUN_CPU:
                 y = -x.abs()
                 return torch.cat([y, y]).sum()
 
-            x = torch.tensor([200, 200], dtype=torch.uint8)
-            expected = f(x)
+            # Small tensor triggers the scalar codegen path
+            x_scalar = torch.tensor([200, 200], dtype=torch.uint8)
+            # Large tensor (>= 256) triggers the vectorized codegen path
+            x_vec = torch.full((256,), 200, dtype=torch.uint8)
+
             opt_f = torch.compile(f)
-            actual = opt_f(x)
-            self.assertEqual(actual, expected)
+
+            self.assertEqual(opt_f(x_scalar), f(x_scalar))
+            self.assertEqual(opt_f(x_vec), f(x_vec))
 
     copy_tests(CommonTemplate, CpuTests, "cpu")
 
